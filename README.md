@@ -6,7 +6,7 @@ Inicialmente, foram definidas as seguintes ferramentas para o desenvolvimento do
 
 - Placa **ESP32-CAM**
 - Sensor de movimento **PIR HC-SR501**
-- Câmera **OV2640**
+- Câmera **OV2640**  (utilizado no desenho do circuito um sensor ultrassonico)
 - Fios conectores (jumpers e cabo USB)
 - Conversor **FTDI**
 
