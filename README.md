@@ -1,4 +1,5 @@
 # Projeto de Monitoramento com ESP32-CAM e Firebase
+<img width="1024" height="1024" alt="ZOLPISECURITY LOGO" src="https://github.com/user-attachments/assets/769d0501-ad49-4451-a74f-d17ec8e76319" />
 
 ## Ferramentas Utilizadas
 
