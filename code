@@ -1,0 +1,98 @@
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <WiFiClientSecure.h>
+
+#define PIR_PIN 4
+
+const char* ssid = "Wokwi-GUEST";
+const char* password = "";
+
+const char* server = "https://7e4e441b-1823-4d68-9338-16bfab6ce1d8-00-1xoyij2ny8u4z.picard.replit.dev";
+
+void setup() {
+  Serial.begin(115200);
+  delay(1000);
+
+  pinMode(PIR_PIN, INPUT);
+
+  Serial.print("Conectando WiFi");
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("\nWiFi conectado!");
+
+  // Faz um GET inicial ao iniciar
+  listarMovimentos();
+}
+
+void enviarMovimento() {
+
+  WiFiClientSecure client;
+  client.setInsecure();
+
+  HTTPClient https;
+
+  String url = String(server) + "/movimento";
+
+  https.begin(client, url);
+  https.addHeader("Content-Type", "application/json");
+
+  String json = "{\"mensagem\":\"Movimento detectado pelo ESP32\"}";
+
+  int httpCode = https.POST(json);
+
+  Serial.print("POST /movimento -> HTTP: ");
+  Serial.println(httpCode);
+
+  if (httpCode > 0) {
+    Serial.println(https.getString());
+  }
+
+  https.end();
+}
+
+void listarMovimentos() {
+
+  WiFiClientSecure client;
+  client.setInsecure();
+
+  HTTPClient https;
+
+  String url = String(server) + "/movimentos";
+
+  https.begin(client, url);
+
+  int httpCode = https.GET();
+
+  Serial.print("GET /movimentos -> HTTP: ");
+  Serial.println(httpCode);
+
+  if (httpCode > 0) {
+    String payload = https.getString();
+    Serial.println("Lista de movimentos:");
+    Serial.println(payload);
+  }
+
+  https.end();
+}
+
+
+void loop() {
+
+  int motion = digitalRead(PIR_PIN);
+
+  if (motion == HIGH) {
+    Serial.println("🚨 Movimento detectado!");
+    enviarMovimento();
+
+    delay(1000);        
+    listarMovimentos(); 
+    delay(5000);
+  }
+
+  delay(200);
+}
