@@ -1,0 +1,107 @@
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <WiFiClientSecure.h>
+#include <time.h>
+
+#define PIR_PIN 4
+
+const char* ssid = "Wokwi-GUEST";
+const char* password = "";
+
+const char* server = "https://legendary-space-cod-j654jv946gr2pqqq-3000.app.github.dev";
+
+unsigned long ultimoMinuto = 0;
+int contadorMovimentos = 0;
+const int LIMITE_ALERTA = 30;
+
+void setup() {
+  Serial.begin(115200);
+  delay(1000);
+
+  pinMode(PIR_PIN, INPUT);
+
+  Serial.print("Conectando WiFi");
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("\nWiFi conectado!");
+
+  // Sincroniza horário NTP
+  configTime(0, 0, "pool.ntp.org");
+
+  Serial.println("Sistema Edge iniciado...");
+}
+
+void enviarAlerta(int total) {
+
+  WiFiClientSecure client;
+  client.setInsecure(); // aceita certificado https
+
+  HTTPClient https;
+  String url = String(server) + "/data";
+
+  https.begin(client, url);
+  https.addHeader("Content-Type", "application/json");
+
+  time_t now = time(nullptr);
+
+  String json = "{";
+  json += "\"device_id\":\"esp32-01\",";
+  json += "\"timestamp\":" + String(now) + ",";
+  json += "\"Movimento\":\"ALERTA_MOVIMENTO_ALTO\",";
+  json += "\"total_por_minuto\":" + String(total);
+  json += "}";
+
+  Serial.println("Enviando alerta:");
+  Serial.println(json);
+
+  int httpCode = https.POST(json);
+
+  Serial.print("POST ALERTA -> HTTP: ");
+  Serial.println(httpCode);
+
+  if (httpCode > 0) {
+    String response = https.getString();
+    Serial.println("Resposta servidor:");
+    Serial.println(response);
+  } else {
+    Serial.println("Erro ao enviar alerta");
+  }
+
+  https.end();
+}
+
+void loop() {
+
+  int motion = digitalRead(PIR_PIN);
+
+  if (motion == HIGH) {
+    contadorMovimentos++;
+    Serial.println("Movimento detectado");
+    delay(200); // evita múltiplas leituras
+  }
+
+  // A cada 60 segundos
+  if (millis() - ultimoMinuto >= 60000) {
+
+    Serial.println("----------------------------");
+    Serial.print("Total no último minuto: ");
+    Serial.println(contadorMovimentos);
+
+    if (contadorMovimentos >= LIMITE_ALERTA) {
+      Serial.println("🚨 MOVIMENTO ALTO DETECTADO!");
+      Serial.println("📷 Ativando câmera (simulação)");
+      enviarAlerta(contadorMovimentos);
+    } else {
+      Serial.println("Movimento dentro do normal.");
+    }
+
+    contadorMovimentos = 0;
+    ultimoMinuto = millis();
+    Serial.println("----------------------------");
+  }
+}
